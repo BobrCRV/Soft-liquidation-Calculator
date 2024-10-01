@@ -8,51 +8,28 @@
         body {
             margin: 0;
             overflow: hidden; /* Скрыть прокрутку */
-        }
-        iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            border: none;
-            pointer-events: none; /* Отключить взаимодействие с iframe */
+            height: 100vh; /* Высота на 100% окна */
+            width: 100vw; /* Ширина на 100% окна */
         }
         #canvasContainer {
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 50%; /* Центрируем по вертикали */
+            left: 50%; /* Центрируем по горизонтали */
+            transform: translate(-50%, -50%); /* Центрируем элемент */
             width: 756px; /* Ширина вашего canvas */
             height: 567px; /* Высота вашего canvas */
             overflow: hidden; /* Скрыть все, что выходит за пределы */
         }
+        iframe {
+            width: 100%; /* Занимает всю ширину контейнера */
+            height: 100%; /* Занимает всю высоту контейнера */
+            border: none;
+        }
     </style>
 </head>
 <body>
-    <h1>Displaying Canvas Element</h1>
     <div id="canvasContainer">
-        <iframe src="https://resources.curve.fi/crvusd/liquidations/#hard-liquidation-example"></iframe>
+        <iframe src="/.netlify/functions/proxy"></iframe>
     </div>
-
-    <script>
-        // Ожидаем загрузки iframe, чтобы затем скрыть ненужные элементы
-        window.onload = function() {
-            const iframe = document.querySelector('iframe');
-            iframe.onload = function() {
-                const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-                // Скрыть все, кроме canvas
-                iframeDocument.body.style.overflow = 'hidden'; // Скрыть прокрутку
-                const canvas = iframeDocument.getElementById('crvHardLiq');
-                if (canvas) {
-                    const parent = canvas.parentNode;
-                    Array.from(parent.children).forEach(child => {
-                        if (child !== canvas) {
-                            child.style.display = 'none'; // Скрываем все, кроме canvas
-                        }
-                    });
-                }
-            };
-        };
-    </script>
 </body>
 </html>

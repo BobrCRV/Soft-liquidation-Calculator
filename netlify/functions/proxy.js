@@ -7,7 +7,7 @@ exports.handler = async (event) => {
         const $ = cheerio.load(response.data);
         
         // Извлекаем родительский div
-        const divElement = $('div#crvHardLiq').parent().html(); // Извлекаем содержимое родителя
+        const divElement = $('div#centered2').parent().html(); // Извлекаем содержимое родителя
 
         return {
             statusCode: 200,

@@ -3,24 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Display Canvas Element</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            // Получаем элемент canvas через прокси
-            $.get('/proxy', function(data) {
-                $('#canvasContainer').html(data);
-            }).fail(function() {
-                $('#canvasContainer').html('<p>Error loading canvas element.</p>');
-            });
-        });
-    </script>
+    <title>Display Specific Canvas Element</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Скрыть прокрутку */
+        }
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            pointer-events: none; /* Отключить взаимодействие с iframe */
+        }
+        #canvasContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 756px; /* Ширина вашего canvas */
+            height: 567px; /* Высота вашего canvas */
+            overflow: hidden; /* Скрыть все, что выходит за пределы */
+        }
+    </style>
 </head>
 <body>
-    <h1>Displaying Canvas Element from Another Site</h1>
+    <h1>Displaying Canvas Element</h1>
     <div id="canvasContainer">
-        <!-- Элемент <canvas> будет вставлен сюда -->
+        <iframe src="https://resources.curve.fi/crvusd/liquidations/#hard-liquidation-example"></iframe>
     </div>
+
+    <script>
+        // Ожидаем загрузки iframe, чтобы затем скрыть ненужные элементы
+        window.onload = function() {
+            const iframe = document.querySelector('iframe');
+            iframe.onload = function() {
+                const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+                // Скрыть все, кроме canvas
+                iframeDocument.body.style.overflow = 'hidden'; // Скрыть прокрутку
+                const canvas = iframeDocument.getElementById('crvHardLiq');
+                if (canvas) {
+                    const parent = canvas.parentNode;
+                    Array.from(parent.children).forEach(child => {
+                        if (child !== canvas) {
+                            child.style.display = 'none'; // Скрываем все, кроме canvas
+                        }
+                    });
+                }
+            };
+        };
+    </script>
 </body>
 </html>
-

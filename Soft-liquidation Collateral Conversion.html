@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soft-liquidation Collateral Conversion</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .price-input {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h2 style="margin: 10px 0 20px; text-align: center;">Soft-liquidation Collateral Conversion</h2>
+
+    <div style="margin-top: 10px;">
+        <label for="collateralInput">Collateral Amount (ETH):</label>
+        <input type="number" id="collateralInput" class="price-input" value="10" min="0" step="0.1">
+    </div>
+
+    <div style="position: relative; margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>Bottom of SL Range:</span>
+            <span>Top of SL Range:</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+            <input type="number" id="bottomRange" class="price-input" value="2311.92">
+            <span id="currentPrice" style="font-weight: bold;">$2434.14</span>
+            <input type="number" id="topRange" class="price-input" value="2556.35">
+        </div>
+        <input type="range" id="ethCrvUsdSlider" style="width: 100%;" min="0" max="100" value="50">
+    </div>
+
+    <canvas id="ethCrvUsdChart" style="display: block; box-sizing: border-box; height: 255px; width: 510px;" width="510" height="255"></canvas>
+
+    <div id="ethCrvUsdValues" style="text-align: center; margin-top: 10px;">
+        Collateral: 5.00 ETH, 12476.21 crvUSD<br>
+        Average Swap Price: 2495.24 crvUSD/ETH<br>
+        ETH Swapped to crvUSD: 50%
+    </div>
+
+    <script>
+        const ethCrvUsdCtx = document.getElementById('ethCrvUsdChart').getContext('2d');
+        const ethCrvUsdSlider = document.getElementById('ethCrvUsdSlider');
+        const ethCrvUsdValuesDisplay = document.getElementById('ethCrvUsdValues');
+        const bottomRangeInput = document.getElementById('bottomRange');
+        const topRangeInput = document.getElementById('topRange');
+        const currentPriceDisplay = document.getElementById('currentPrice');
+        const collateralInput = document.getElementById('collateralInput');
+
+        const ethCrvUsdChart = new Chart(ethCrvUsdCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Collateral'],
+                datasets: [
+                    {
+                        label: 'ETH',
+                        data: [0],
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'crvUSD',
+                        data: [0],
+                        backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        stacked: false,
+                        categoryPercentage: 0.8,
+                        barPercentage: 0.9,
+                        title: {
+                            display: false,
+                            text: 'Collateral'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'ETH Collateral'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(2) + ' ETH';
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'crvUSD Collateral'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(0) + ' crvUSD';
+                            }
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    },
+                    title: {
+                        display: false,
+                        text: 'Soft-Liquidation Collateral Conversion'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                if (label === 'ETH') {
+                                    return context.parsed.y.toFixed(2) + ' ETH';
+                                } else {
+                                    return context.parsed.y.toFixed(2) + ' crvUSD';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        function updateEthCrvUsdChart() {
+            const ethPercentage = Number(ethCrvUsdSlider.value);
+            const crvUSDPercentage = 100 - ethPercentage;
+            const bottomValue = Number(bottomRangeInput.value);
+            const topValue = Number(topRangeInput.value);
+            const sliderValue = Number(ethCrvUsdSlider.value);
+            const collateral = Number(collateralInput.value);
+
+            const currentPrice = bottomValue + (topValue - bottomValue) * (sliderValue / 100);
+            const avgSellPrice = (topValue + currentPrice) / 2;
+            const eth = (ethPercentage / 100) * collateral;
+            const crvUSDEth = (crvUSDPercentage / 100) * collateral;
+            const crvUSDValue = crvUSDEth * avgSellPrice;
+
+            ethCrvUsdChart.data.datasets[0].data = [eth];
+            ethCrvUsdChart.data.datasets[1].data = [crvUSDValue];
+
+            ethCrvUsdChart.options.scales.y.max = Math.ceil(collateral);
+            ethCrvUsdChart.options.scales.y1.max = Math.ceil(topValue * collateral);
+
+            ethCrvUsdChart.update();
+
+            ethCrvUsdValuesDisplay.innerHTML = `Collateral: ${eth.toFixed(2)} ETH, ${crvUSDValue.toFixed(2)} crvUSD<br>Average Swap Price: ${avgSellPrice.toFixed(2)} crvUSD/ETH<br>ETH Swapped to crvUSD: ${crvUSDPercentage}%`;
+
+            currentPriceDisplay.textContent = '$' + currentPrice.toFixed(2);
+        }
+
+        ethCrvUsdSlider.addEventListener('input', updateEthCrvUsdChart);
+        bottomRangeInput.addEventListener('input', updateEthCrvUsdChart);
+        topRangeInput.addEventListener('input', updateEthCrvUsdChart);
+        collateralInput.addEventListener('input', updateEthCrvUsdChart);
+
+        // Initial update
+        updateEthCrvUsdChart();
+    </script>
+</body>
+</html>
+

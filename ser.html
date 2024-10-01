@@ -3,34 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Display Specific Canvas Element</title>
+    <title>Display Full HTML Page</title>
     <style>
         body {
             margin: 0;
-            overflow: hidden; /* Скрыть прокрутку */
+            overflow: auto; /* Включить прокрутку, если необходимо */
             height: 100vh; /* Высота на 100% окна */
             width: 100vw; /* Ширина на 100% окна */
         }
-        #canvasContainer {
-            position: absolute;
-            top: 50%; /* Центрируем по вертикали */
-            left: 50%; /* Центрируем по горизонтали */
-            transform: translate(-50%, -50%); /* Центрируем элемент */
-            width: 756px; /* Ширина вашего canvas */
-            height: 567px; /* Высота вашего canvas */
-            overflow: hidden; /* Скрыть все, что выходит за пределы */
-        }
-        iframe {
-            width: 100%; /* Занимает всю ширину контейнера */
-            height: 100%; /* Занимает всю высоту контейнера */
-            border: none;
-            pointer-events: auto; /* Включить взаимодействие с iframe */
+        #output {
+            padding: 20px; /* Отступ для читаемости */
+            white-space: pre-wrap; /* Сохраняем пробелы и переносы строк */
         }
     </style>
 </head>
 <body>
-    <div id="canvasContainer">
-        <iframe src="/.netlify/functions/proxy"></iframe>
-    </div>
+    <div id="output"></div>
+
+    <script>
+        fetch('/.netlify/functions/proxy')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('output').innerHTML = data; // Выводим содержимое в div
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+            });
+    </script>
 </body>
 </html>

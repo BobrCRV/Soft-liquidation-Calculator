@@ -5,7 +5,9 @@ exports.handler = async (event) => {
     try {
         const response = await axios.get('https://resources.curve.fi/crvusd/liquidations/#hard-liquidation-example');
         const $ = cheerio.load(response.data);
-        const canvasElement = $('#crvHardLiq').toString();
+        
+        // Извлекаем сам canvas
+        const canvasElement = $('#crvHardLiq').outerHTML;
 
         return {
             statusCode: 200,

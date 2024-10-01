@@ -24,12 +24,13 @@
             width: 100%; /* Занимает всю ширину контейнера */
             height: 100%; /* Занимает всю высоту контейнера */
             border: none;
+            pointer-events: auto; /* Включить взаимодействие с iframe */
         }
     </style>
 </head>
 <body>
     <div id="canvasContainer">
-        <iframe src="/.netlify/functions/proxy"></iframe>
+        <iframe src="http://localhost:3000/proxy"></iframe>
     </div>
 </body>
 </html>

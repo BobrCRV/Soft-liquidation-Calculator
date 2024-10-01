@@ -3,9 +3,8 @@
   "version": "1.0.0",
   "description": "Proxy to fetch specific canvas element",
   "main": "functions/proxy.js",
-  "scripts": {},
   "dependencies": {
-    "axios": "^0.21.1",  // Укажите актуальную версию axios
-    "cheerio": "^1.0.0-rc.3" // Укажите актуальную версию cheerio
+    "axios": "^0.21.1",
+    "cheerio": "^1.0.0-rc.3"
   }
 }

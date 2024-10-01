@@ -1,22 +1,27 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+const puppeteer = require('puppeteer');
 
 exports.handler = async (event) => {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+
     try {
-        const response = await axios.get('https://resources.curve.fi/crvusd/liquidations/#hard-liquidation-example');
-        const $ = cheerio.load(response.data);
-        
-        // Извлекаем родительский div элемента <canvas>
-        const divElement = $('#crvHardLiq').closest('div').html(); // Извлекаем родительский div
+        await page.goto('https://resources.curve.fi/crvusd/liquidations/#hard-liquidation-example', { waitUntil: 'networkidle2' });
+        const canvasElement = await page.evaluate(() => {
+            const canvas = document.getElementById('crvHardLiq');
+            return canvas ? canvas.outerHTML : null;
+        });
+
+        await browser.close();
 
         return {
             statusCode: 200,
-            body: divElement,
+            body: canvasElement || 'Canvas not found',
         };
     } catch (error) {
+        await browser.close();
         return {
             statusCode: 500,
-            body: 'Ошибка при загрузке страницы.',
+            body: 'Error fetching the page.',
         };
     }
 };

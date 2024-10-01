@@ -6,38 +6,48 @@
     <title>Soft-liquidation Collateral Conversion</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        .container {
+            max-width: 600px; /* Ограничивает максимальную ширину */
+            margin: 0 auto; /* Центрирует контейнер на странице */
+            padding: 20px; /* Добавляет отступы внутри контейнера */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Добавляет легкую тень */
+            background-color: #f9f9f9; /* Цвет фона контейнера */
+            border-radius: 8px; /* Закругленные углы */
+        }
         .price-input {
             width: 100px;
         }
     </style>
 </head>
 <body>
-    <h2 style="margin: 10px 0 20px; text-align: center;">Soft-liquidation Collateral Conversion</h2>
+    <div class="container">
+        <h2 style="margin: 10px 0 20px; text-align: center;">Soft-liquidation Collateral Conversion</h2>
 
-    <div style="margin-top: 10px;">
-        <label for="collateralInput">Collateral Amount (ETH):</label>
-        <input type="number" id="collateralInput" class="price-input" value="10" min="0" step="0.1">
-    </div>
-
-    <div style="position: relative; margin-top: 20px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>Bottom of SL Range:</span>
-            <span>Top of SL Range:</span>
+        <div style="margin-top: 10px;">
+            <label for="collateralInput">Collateral Amount (ETH):</label>
+            <input type="number" id="collateralInput" class="price-input" value="10" min="0" step="0.1">
         </div>
-        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
-            <input type="number" id="bottomRange" class="price-input" value="2311.92">
-            <span id="currentPrice" style="font-weight: bold;">$2434.14</span>
-            <input type="number" id="topRange" class="price-input" value="2556.35">
+
+        <div style="position: relative; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>Bottom of SL Range:</span>
+                <span>Top of SL Range:</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                <input type="number" id="bottomRange" class="price-input" value="2311.92">
+                <span id="currentPrice" style="font-weight: bold;">$2434.14</span>
+                <input type="number" id="topRange" class="price-input" value="2556.35">
+            </div>
+            <input type="range" id="ethCrvUsdSlider" style="width: 100%;" min="0" max="100" value="50">
         </div>
-        <input type="range" id="ethCrvUsdSlider" style="width: 100%;" min="0" max="100" value="50">
-    </div>
 
-    <canvas id="ethCrvUsdChart" style="display: block; box-sizing: border-box; height: 255px; width: 510px;" width="510" height="255"></canvas>
+        <canvas id="ethCrvUsdChart" style="display: block; box-sizing: border-box; height: 255px; width: 100%;"></canvas>
 
-    <div id="ethCrvUsdValues" style="text-align: center; margin-top: 10px;">
-        Collateral: 5.00 ETH, 12476.21 crvUSD<br>
-        Average Swap Price: 2495.24 crvUSD/ETH<br>
-        ETH Swapped to crvUSD: 50%
+        <div id="ethCrvUsdValues" style="text-align: center; margin-top: 10px;">
+            Collateral: 5.00 ETH, 12476.21 crvUSD<br>
+            Average Swap Price: 2495.24 crvUSD/ETH<br>
+            ETH Swapped to crvUSD: 50%
+        </div>
     </div>
 
     <script>
@@ -175,4 +185,3 @@
     </script>
 </body>
 </html>
-

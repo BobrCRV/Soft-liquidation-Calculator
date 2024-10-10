@@ -31,7 +31,7 @@
 <div class="controls">
     <div class="control-group">
         <label for="accumulatedFees">Накопленные комиссии (% от пула):</label>
-        <input type="range" id="accumulatedFees" min="0" max="5" step="0.1" value="0">
+        <input type="range" id="accumulatedFees" min="0" max="10" step="0.1" value="0">
         <span id="accumulatedFeesValue">0%</span>
     </div>
     <div class="control-group">
@@ -44,6 +44,26 @@
 <div id="graph"></div>
 
 <script>
+// Параметры
+var gamma = 5; // Чем меньше gamma, тем уже кривая
+var alpha = 0.1333; // Коэффициент обновления цены оракула
+var adjustmentFactor = 0.2; // Коэффициент для контроля скорости приближения p_eq
+var maxFees = 2.5; // Максимальные накопленные комиссии для полной корректировки
+
+// Диапазон цен
+var priceRange = [];
+for (var i = 80; i <= 120; i += 0.1) {
+    priceRange.push(i);
+}
+
+// Начальные значения
+var p_eq = 100; // Начальная равновесная цена
+var market_price = 100;
+var oracle_price = 100;
+
+// Начальная общая ликвидность
+var totalLiquidity = 1000;
+
 // Функция для моделирования кривой ликвидности
 function liquidityCurve(priceRange, p_eq, gamma, totalLiquidity) {
     var liquidity = [];
@@ -56,25 +76,6 @@ function liquidityCurve(priceRange, p_eq, gamma, totalLiquidity) {
     return liquidity;
 }
 
-// Параметры
-var gamma = 5; // Чем меньше gamma, тем уже кривая
-
-// Диапазон цен
-var priceRange = [];
-for (var i = 80; i <= 120; i += 0.1) {
-    priceRange.push(i);
-}
-
-// Начальные значения
-var p_eq_initial = 100;
-var market_price = 100;
-var oracle_price = 100;
-var accumulated_fees = 0; // В процентах от пула
-var maxFees = 5; // Максимальные накопленные комиссии для полной корректировки
-
-// Переменные для хранения предыдущего состояния
-var totalLiquidity = 1000; // Начальная общая ликвидность
-
 // Функция для обновления графика
 function updateGraph() {
     var accumulatedFees = parseFloat(document.getElementById('accumulatedFees').value);
@@ -84,10 +85,14 @@ function updateGraph() {
     document.getElementById('marketPriceValue').innerText = marketPrice;
 
     // Цена внутреннего оракула (упрощенно моделируем как EMA)
-    oracle_price = oracle_price + (marketPrice - oracle_price) * 0.2;
+    oracle_price = oracle_price + (marketPrice - oracle_price) * alpha;
 
-    // Плавное смещение равновесной цены к цене оракула
-    var p_eq = p_eq_initial + (oracle_price - p_eq_initial) * (accumulatedFees / maxFees);
+    // Рассчитываем коэффициент приближения равновесной цены к цене оракула
+    var beta = (accumulatedFees / maxFees) * adjustmentFactor;
+    if (beta > 1) beta = adjustmentFactor; // Ограничиваем beta
+
+    // Обновляем равновесную цену p_eq
+    p_eq = p_eq + (oracle_price - p_eq) * beta;
 
     // Общая ликвидность увеличивается с накоплением комиссий
     var currentLiquidity = totalLiquidity * (1 + accumulatedFees / 100);
@@ -122,19 +127,6 @@ function updateGraph() {
                     dash: 'dot'
                 }
             },
-            // Текущая рыночная цена
-            {
-                type: 'line',
-                x0: marketPrice,
-                y0: 0,
-                x1: marketPrice,
-                y1: Math.max(...liquidity),
-                line: {
-                    color: 'red',
-                    width: 2,
-                    dash: 'solid'
-                }
-            },
             // Цена внутреннего оракула
             {
                 type: 'line',
@@ -147,6 +139,19 @@ function updateGraph() {
                     width: 2,
                     dash: 'dashdot'
                 }
+            },
+            // Текущая рыночная цена
+            {
+                type: 'line',
+                x0: marketPrice,
+                y0: 0,
+                x1: marketPrice,
+                y1: Math.max(...liquidity),
+                line: {
+                    color: 'red',
+                    width: 2,
+                    dash: 'solid'
+                }
             }
         ],
         annotations: [
@@ -155,24 +160,12 @@ function updateGraph() {
                 y: Math.max(...liquidity),
                 xref: 'x',
                 yref: 'y',
-                text: 'p = ' + p_eq.toFixed(2),
+                text: 'p_eq = ' + p_eq.toFixed(2),
                 showarrow: true,
                 arrowhead: 7,
                 ax: -40,
                 ay: -40,
                 font: {color: 'blue'}
-            },
-            {
-                x: marketPrice,
-                y: Math.max(...liquidity),
-                xref: 'x',
-                yref: 'y',
-                text: 'Рыночная цена = ' + marketPrice.toFixed(2),
-                showarrow: true,
-                arrowhead: 7,
-                ax: 0,
-                ay: -80,
-                font: {color: 'red'}
             },
             {
                 x: oracle_price,
@@ -185,6 +178,18 @@ function updateGraph() {
                 ax: 40,
                 ay: -80,
                 font: {color: 'purple'}
+            },
+            {
+                x: marketPrice,
+                y: Math.max(...liquidity),
+                xref: 'x',
+                yref: 'y',
+                text: 'Рыночная цена = ' + marketPrice.toFixed(2),
+                showarrow: true,
+                arrowhead: 7,
+                ax: 0,
+                ay: -80,
+                font: {color: 'red'}
             }
         ]
     };
@@ -204,4 +209,3 @@ updateGraph();
 
 </body>
 </html>
-

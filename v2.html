@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Динамическая визуализация Crypto Pool</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 220px;
+        }
+        input[type="range"] {
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Динамическая кривая ликвидности Crypto Pool</h2>
+
+<div class="controls">
+    <div class="control-group">
+        <label for="accumulatedFees">Накопленные комиссии (% от пула):</label>
+        <input type="range" id="accumulatedFees" min="0" max="5" step="0.1" value="0">
+        <span id="accumulatedFeesValue">0%</span>
+    </div>
+    <div class="control-group">
+        <label for="marketPrice">Рыночная цена:</label>
+        <input type="range" id="marketPrice" min="80" max="120" step="1" value="100">
+        <span id="marketPriceValue">100</span>
+    </div>
+</div>
+
+<div id="graph"></div>
+
+<script>
+// Функция для моделирования кривой ликвидности
+function liquidityCurve(priceRange, p_eq, gamma, totalLiquidity) {
+    var liquidity = [];
+    for (var i = 0; i < priceRange.length; i++) {
+        var price = priceRange[i];
+        // Формула для колоколообразной кривой
+        var liq = totalLiquidity / (1 + Math.pow((price - p_eq) / gamma, 2));
+        liquidity.push(liq);
+    }
+    return liquidity;
+}
+
+// Параметры
+var gamma = 5; // Чем меньше gamma, тем уже кривая
+
+// Диапазон цен
+var priceRange = [];
+for (var i = 80; i <= 120; i += 0.1) {
+    priceRange.push(i);
+}
+
+// Начальные значения
+var p_eq_initial = 100;
+var market_price = 100;
+var oracle_price = 100;
+var accumulated_fees = 0; // В процентах от пула
+var maxFees = 5; // Максимальные накопленные комиссии для полной корректировки
+
+// Переменные для хранения предыдущего состояния
+var totalLiquidity = 1000; // Начальная общая ликвидность
+
+// Функция для обновления графика
+function updateGraph() {
+    var accumulatedFees = parseFloat(document.getElementById('accumulatedFees').value);
+    var marketPrice = parseFloat(document.getElementById('marketPrice').value);
+
+    document.getElementById('accumulatedFeesValue').innerText = accumulatedFees + '%';
+    document.getElementById('marketPriceValue').innerText = marketPrice;
+
+    // Цена внутреннего оракула (упрощенно моделируем как EMA)
+    oracle_price = oracle_price + (marketPrice - oracle_price) * 0.2;
+
+    // Плавное смещение равновесной цены к цене оракула
+    var p_eq = p_eq_initial + (oracle_price - p_eq_initial) * (accumulatedFees / maxFees);
+
+    // Общая ликвидность увеличивается с накоплением комиссий
+    var currentLiquidity = totalLiquidity * (1 + accumulatedFees / 100);
+
+    // Ликвидность при текущей равновесной цене
+    var liquidity = liquidityCurve(priceRange, p_eq, gamma, currentLiquidity);
+
+    // Данные для графика
+    var trace = {
+        x: priceRange,
+        y: liquidity,
+        mode: 'lines',
+        name: 'Кривая ликвидности (p = ' + p_eq.toFixed(2) + ')',
+        line: {color: 'blue'}
+    };
+
+    var layout = {
+        title: 'Кривая ликвидности Crypto Pool',
+        xaxis: {title: 'Цена'},
+        yaxis: {title: 'Концентрация ликвидности', rangemode: 'tozero'},
+        shapes: [
+            // Равновесная цена
+            {
+                type: 'line',
+                x0: p_eq,
+                y0: 0,
+                x1: p_eq,
+                y1: Math.max(...liquidity),
+                line: {
+                    color: 'blue',
+                    width: 2,
+                    dash: 'dot'
+                }
+            },
+            // Текущая рыночная цена
+            {
+                type: 'line',
+                x0: marketPrice,
+                y0: 0,
+                x1: marketPrice,
+                y1: Math.max(...liquidity),
+                line: {
+                    color: 'red',
+                    width: 2,
+                    dash: 'solid'
+                }
+            },
+            // Цена внутреннего оракула
+            {
+                type: 'line',
+                x0: oracle_price,
+                y0: 0,
+                x1: oracle_price,
+                y1: Math.max(...liquidity),
+                line: {
+                    color: 'purple',
+                    width: 2,
+                    dash: 'dashdot'
+                }
+            }
+        ],
+        annotations: [
+            {
+                x: p_eq,
+                y: Math.max(...liquidity),
+                xref: 'x',
+                yref: 'y',
+                text: 'p = ' + p_eq.toFixed(2),
+                showarrow: true,
+                arrowhead: 7,
+                ax: -40,
+                ay: -40,
+                font: {color: 'blue'}
+            },
+            {
+                x: marketPrice,
+                y: Math.max(...liquidity),
+                xref: 'x',
+                yref: 'y',
+                text: 'Рыночная цена = ' + marketPrice.toFixed(2),
+                showarrow: true,
+                arrowhead: 7,
+                ax: 0,
+                ay: -80,
+                font: {color: 'red'}
+            },
+            {
+                x: oracle_price,
+                y: Math.max(...liquidity),
+                xref: 'x',
+                yref: 'y',
+                text: 'Цена оракула = ' + oracle_price.toFixed(2),
+                showarrow: true,
+                arrowhead: 7,
+                ax: 40,
+                ay: -80,
+                font: {color: 'purple'}
+            }
+        ]
+    };
+
+    var data = [trace];
+
+    Plotly.newPlot('graph', data, layout);
+}
+
+// Обработчики событий
+document.getElementById('accumulatedFees').addEventListener('input', updateGraph);
+document.getElementById('marketPrice').addEventListener('input', updateGraph);
+
+// Первоначальный вызов функции для отображения графика
+updateGraph();
+</script>
+
+</body>
+</html>
+

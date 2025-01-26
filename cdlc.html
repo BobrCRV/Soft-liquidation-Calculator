@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dynamic Liquidity Curve Curve AMM v2 - CryptoSwap</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: white;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 220px;
+        }
+        input[type="range"] {
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Dynamic Liquidity Curve Curve AMM v2 - CryptoSwap</h2>
+
+<div class="controls">
+    <div class="control-group">
+        <label for="accumulatedFees">Accumulated Fees (% of pool):</label>
+        <input type="range" id="accumulatedFees" min="0" max="10" step="0.1" value="0">
+        <span id="accumulatedFeesValue">0%</span>
+    </div>
+    <div class="control-group">
+        <label for="marketPrice">Market Price:</label>
+        <input type="range" id="marketPrice" min="80" max="120" step="1" value="100">
+        <span id="marketPriceValue">100</span>
+    </div>
+</div>
+
+<div id="graph"></div>
+
+<script>
+// Parameters
+var gamma = 5; // The smaller gamma is, the narrower the curve
+var alpha = 0.1333; // Oracle price update coefficient
+var adjustmentFactor = 0.2; // Coefficient to control the speed of p_eq convergence
+var maxFees = 2.5; // Maximum accumulated fees for full adjustment
+
+// Price range
+var priceRange = [];
+for (var i = 80; i <= 120; i += 0.1) {
+    priceRange.push(i);
+}
+
+// Initial values
+var p_eq = 100; // Initial equilibrium price
+var market_price = 100;
+var oracle_price = 100;
+
+// Initial total liquidity
+var totalLiquidity = 1000;
+
+// Function to model the liquidity curve
+function liquidityCurve(priceRange, p_eq, gamma, totalLiquidity) {
+    var liquidity = [];
+    for (var i = 0; i < priceRange.length; i++) {
+        var price = priceRange[i];
+        // Formula for a bell-shaped curve
+        var liq = totalLiquidity / (1 + Math.pow((price - p_eq) / gamma, 2));
+        liquidity.push(liq);
+    }
+    return liquidity;
+}
+
+// Function to update the graph
+function updateGraph() {
+    var accumulatedFees = parseFloat(document.getElementById('accumulatedFees').value);
+    var marketPrice = parseFloat(document.getElementById('marketPrice').value);
+
+    document.getElementById('accumulatedFeesValue').innerText = accumulatedFees + '%';
+    document.getElementById('marketPriceValue').innerText = marketPrice;
+
+    // Internal oracle price (simplistically modeled as EMA)
+    oracle_price = oracle_price + (marketPrice - oracle_price) * alpha;
+
+    // Calculate the coefficient for equilibrium price convergence to oracle price
+    var beta = (accumulatedFees / maxFees) * adjustmentFactor;
+    if (beta > 1) beta = adjustmentFactor; // Limit beta
+
+    // Update the equilibrium price p_eq
+    p_eq = p_eq + (oracle_price - p_eq) * beta;
+
+    // Total liquidity increases with accumulated fees
+    var currentLiquidity = totalLiquidity * (1 + accumulatedFees / 100);
+
+    // Liquidity at the current equilibrium price
+    var liquidity = liquidityCurve(priceRange, p_eq, gamma, currentLiquidity);
+
+    // Data for the graph
+    var trace = {
+        x: priceRange,
+        y: liquidity,
+        mode: 'lines',
+        name: 'Liquidity Curve (p = ' + p_eq.toFixed(2) + ')',
+        line: {color: 'blue'}
+    };
+
+    var layout = {
+        title: 'Concentrated Liquidity Movement Graph in Curve AMM v2',
+        xaxis: {title: 'Price'},
+        yaxis: {title: 'Liquidity Concentration', rangemode: 'tozero'},
+        shapes: [
+            // Equilibrium price
+            {
+                type: 'line',
+                x0: p_eq,
+                y0: 0,
+                x1: p_eq,
+                y1: Math.max(...liquidity),
+                line: {
+                    color: 'blue',
+                    width: 2,
+                    dash: 'dot'
+                }
+            },
+            // Oracle price
+            {
+                type: 'line',
+                x0: oracle_price,
+                y0: 0,
+                x1: oracle_price,
+                y1: Math.max(...liquidity),
+                line: {
+                    color: 'purple',
+                    width: 2,
+                    dash: 'dashdot'
+                }
+            },
+            // Current market price
+            {
+                type: 'line',
+                x0: marketPrice,
+                y0: 0,
+                x1: marketPrice,
+                y1: Math.max(...liquidity),
+                line: {
+                    color: 'red',
+                    width: 2,
+                    dash: 'solid'
+                }
+            }
+        ],
+        annotations: [
+            {
+                x: p_eq,
+                y: Math.max(...liquidity),
+                xref: 'x',
+                yref: 'y',
+                text: 'Max Concentration Point (p_eq) = ' + p_eq.toFixed(2),
+                showarrow: true,
+                arrowhead: 7,
+                ax: -40,
+                ay: -40,
+                font: {color: 'blue'}
+            },
+            {
+                x: oracle_price,
+                y: Math.max(...liquidity),
+                xref: 'x',
+                yref: 'y',
+                text: 'Oracle Price = ' + oracle_price.toFixed(2),
+                showarrow: true,
+                arrowhead: 7,
+                ax: 40,
+                ay: -80,
+                font: {color: 'purple'}
+            },
+            {
+                x: marketPrice,
+                y: Math.max(...liquidity),
+                xref: 'x',
+                yref: 'y',
+                text: 'Market Price = ' + marketPrice.toFixed(2),
+                showarrow: true,
+                arrowhead: 7,
+                ax: 0,
+                ay: -100, // Changed to -100 to move the text higher
+                font: {color: 'red'}
+            }
+
+        ]
+    };
+
+    var data = [trace];
+
+    Plotly.newPlot('graph', data, layout);
+}
+
+// Event listeners
+document.getElementById('accumulatedFees').addEventListener('input', updateGraph);
+document.getElementById('marketPrice').addEventListener('input', updateGraph);
+
+// Initial call to display the graph
+updateGraph();
+</script>
+
+</body>
+</html>
+
